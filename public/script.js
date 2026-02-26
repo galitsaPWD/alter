@@ -156,9 +156,9 @@ async function callProxy(messages) {
     hideEmptyState();
 
     if (!response.ok) {
-      appendMessage('alter', data.error ?? 'Something went wrong — try again.', 'The Other You');
+      appendMessage('alter', data.error ?? 'Something went wrong — try again.', 'The Alter');
     } else {
-      appendMessage('alter', data.reply, 'The Other You');
+      appendMessage('alter', data.reply, 'The Alter');
       conversationHistory.push({ role: 'assistant', content: data.reply });
     }
 
@@ -166,7 +166,7 @@ async function callProxy(messages) {
     console.error('Request failed:', err);
     removeTypingIndicator();
     setAvatarThinking(false);
-    appendMessage('alter', 'The connection flickered — try again.', 'The Other You');
+    appendMessage('alter', 'The connection flickered — try again.', 'The Alter');
   } finally {
     isWaiting = false;
     setSendState(true);
@@ -223,7 +223,7 @@ function addTypingIndicator() {
   msg.className = 'msg alter';
   msg.id = 'typing';
   msg.innerHTML = `
-    <span class="msg-label">The Other You</span>
+    <span class="msg-label">The Alter</span>
     <div class="typing-dot-wrapper">
       <span></span><span></span><span></span>
     </div>
@@ -285,11 +285,11 @@ function copyConversation() {
   }
 
   const lines = conversationHistory.map(m => {
-    const who = m.role === 'user' ? 'You' : 'The Other You';
+    const who = m.role === 'user' ? 'You' : 'The Alter';
     return `${who}: ${m.content}`;
   });
 
-  const text = `— Other You — ${alterEgoScenario}\n\n` + lines.join('\n\n');
+  const text = `— Alter — ${alterEgoScenario}\n\n` + lines.join('\n\n');
 
   navigator.clipboard.writeText(text)
     .then(() => showToast('Conversation copied ✓'))

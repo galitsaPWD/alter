@@ -107,7 +107,7 @@ app.get('*', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅  Other You running at http://localhost:${PORT}`);
+  console.log(`✅  Alter running at http://localhost:${PORT}`);
 });
 
 export default app;
