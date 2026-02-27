@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 /* ─────────────────────────────────────────
    MIDDLEWARE
 ───────────────────────────────────────── */
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(cors({ origin: '*' }));
 
 /* ─────────────────────────────────────────
@@ -51,14 +51,18 @@ app.post('/api/chat', async (req, res) => {
   if (messages.length > 40)
     return res.status(400).json({ error: 'Conversation too long — start a new chat.' });
 
-  if (typeof systemPrompt !== 'string' || systemPrompt.length > 1000)
-    return res.status(400).json({ error: 'Invalid system prompt.' });
+  if (typeof systemPrompt !== 'string')
+    return res.status(400).json({ error: 'systemPrompt must be a string.' });
 
-  for (const msg of messages) {
+  if (systemPrompt.length > 5000)
+    return res.status(400).json({ error: `systemPrompt too long (${systemPrompt.length}/5000).` });
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
     if (!['user', 'assistant'].includes(msg.role))
-      return res.status(400).json({ error: 'Invalid message role.' });
-    if (typeof msg.content !== 'string' || msg.content.length > 2000)
-      return res.status(400).json({ error: 'Message too long.' });
+      return res.status(400).json({ error: `Invalid role at index ${i}: ${msg.role}` });
+    if (typeof msg.content !== 'string' || msg.content.length > 5000)
+      return res.status(400).json({ error: `Message too long at index ${i} (${msg.content?.length}/5000).` });
   }
 
   // Call Groq using native fetch (no node-fetch needed)
