@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>alter</title>
+  <meta name="description" content="you weren't supposed to find this." />
+  <meta property="og:title" content="alter" />
+  <meta property="og:description" content="you weren't supposed to find this." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="alter" />
+  <meta name="twitter:description" content="you weren't supposed to find this." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♊︎</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Inter:wght@300;400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- THEME TOGGLE -->
+  <div class="theme-toggle">
+    <button class="btn-dark active" onclick="setTheme('dark')">dark</button>
+    <span class="toggle-sep">/</span>
+    <button class="btn-light" onclick="setTheme('light')">light</button>
+  </div>
+
+  <!-- ── LOADER ── -->
+  <div class="loader-overlay" id="loaderScreen">
+    <canvas id="branchCanvas"></canvas>
+    <div class="loader-content">
+      <p class="loader-glyph">♊︎</p>
+      <div id="loaderStatus">scanning timelines...</div>
+      <div id="loaderTimeline" class="timeline-tag">TARGET: <span id="loaderTimelineId">---</span></div>
+      <div id="loaderBarContainer">
+        <div id="loaderBar"></div>
+      </div>
+      <p class="loader-warning">do not close this tab</p>
+    </div>
+  </div>
+
+  <!-- ── DISCONNECT TERMINAL ── -->
+  <div class="disconnect-overlay" id="disconnectScreen">
+    <div class="terminal-box">
+      <div class="terminal-header">
+        <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+        <span style="opacity: 0.5; margin-left: 8px;">sys/teardown</span>
+      </div>
+      <div id="terminalOutput" class="terminal-content">
+        <!-- Lines injected via JS -->
+      </div>
+      <span class="terminal-cursor">_</span>
+    </div>
+  </div>
+
+  <!-- ── WARNING MODAL ── -->
+  <div class="warning-modal" id="warningModal">
+    <div class="warning-box">
+      <p class="warning-file">SYSTEM_ALERT / TIMELINE-7</p>
+      <h3 class="warning-title">proceed with caution.</h3>
+      <p class="warning-body">what you're about to access is not indexed.<br>this connection is unverified and unstable.<br>we are not responsible for what you find.</p>
+      <button class="warning-btn" onclick="dismissWarning()">i understand the risks →</button>
+      <p class="warning-small">this session will not be recorded.</p>
+    </div>
+  </div>
+
+  <!-- ── SAVE MODAL ── -->
+  <div class="warning-modal" id="saveModal" style="display: none;">
+    <div class="warning-box">
+      <p class="warning-file">SYSTEM_PROMPT / DISCONNECT</p>
+      <h3 class="warning-title">sever connection.</h3>
+      <p class="warning-body" style="margin-bottom: 24px;">do you wish to log this timeline in the redacted folder, or sever it completely?</p>
+      <div style="display: flex; gap: 12px; flex-direction: column;">
+        <button class="warning-btn" style="background: var(--text); color: var(--bg);" onclick="saveAndReset()">[ encrypt & save ]</button>
+        <button class="warning-btn" onclick="deleteAndReset()">[ sever & forget ]</button>
+        <button class="warning-btn" style="opacity: 0.5; margin-top: 8px;" onclick="document.getElementById('saveModal').style.display='none'">return to chat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TRANSCRIPT VIEWER MODAL ── -->
+  <div class="warning-modal" id="transcriptModal" style="display: none;">
+    <div class="transcript-box">
+      <div class="transcript-header">
+        <div>
+          <p class="warning-file" id="transcriptMeta">TIMELINE / 00:00</p>
+          <h3 class="warning-title" style="margin-bottom: 4px;">ARCHIVED_SESSION</h3>
+          <p class="folder-sub" id="transcriptScenario" style="line-height:1.4">scenario text...</p>
+        </div>
+        <button class="icon-btn" onclick="document.getElementById('transcriptModal').style.display='none'" style="align-self: flex-start; margin-top: -8px; margin-right: -8px;">×</button>
+      </div>
+      <div class="transcript-body" id="transcriptMessages">
+        <!-- Messages injected here -->
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- ── SCREEN 1: LANDING ── -->
+    <section id="screen-landing" class="screen active">
+      <div class="landing-file">
+        <span class="file-tag">FILE_7742–B</span>
+        <span class="file-tag redacted">██████████</span>
+      </div>
+      <div class="landing-body">
+        <p class="landing-pre">this site wasn't meant to be indexed.</p>
+        <h1>alter</h1>
+        <p class="landing-desc">somewhere in another timeline, a version of you took the path you didn't. this is where you talk to them.</p>
+      </div>
+      <div class="landing-actions">
+        <button class="primary-btn" onclick="goTo('screen-path')">
+          i understand <span class="arrow">→</span>
+        </button>
+        <p class="fine-print">no accounts · no data · nothing stored</p>
+      </div>
+
+      <!-- ── REDACTED FOLDER ── -->
+      <section id="redactedFolder" style="display:none;">
+        <div class="folder-header" onclick="toggleFolder()">
+          <div>
+            <p class="folder-tag"><span id="folderToggleIcon">+</span> REDACTED FOLDER</p>
+            <p class="folder-sub">previously accessed timelines</p>
+          </div>
+          <button class="folder-clear-btn" onclick="clearSessions(event)">clear</button>
+        </div>
+        <ul id="sessionList" style="display: none;"></ul>
+      </section>
+    </section>
+
+    <!-- ── SCREEN 2: PATH ── -->
+    <section id="screen-path" class="screen">
+      <div class="screen-nav">
+        <button class="back-btn" onclick="goTo('screen-landing')">← back</button>
+        <span class="step-tag">01 / 02</span>
+      </div>
+      <div class="screen-body">
+        <p class="screen-pre">describe the fork</p>
+        <h2>What path<br>didn't you take?</h2>
+        <p class="screen-sub">the more specific you are, the more accurately we can locate your alter.</p>
+
+
+        <textarea
+          id="scenario"
+          placeholder="i wanted to be an astronaut but ended up in IT..."
+          rows="3"
+          maxlength="600"
+          oninput="updateCounter()"
+        ></textarea>
+        <div class="field-foot">
+          <span class="char-count" id="charCount">0 / 600</span>
+        </div>
+      </div>
+      <div class="screen-foot">
+        <button class="primary-btn" onclick="goToScan()">
+          continue <span class="arrow">→</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ── SCREEN 3: SCAN ── -->
+    <section id="screen-scan" class="screen">
+      <div class="screen-nav">
+        <button class="back-btn" id="scanBackBtn" onclick="scanBack()">← back</button>
+        <span class="step-tag" id="scanStepTag">02 / 02</span>
+      </div>
+      <div class="screen-body">
+        <p class="screen-pre">behavioral scan</p>
+        <p class="scan-meta" id="scanMeta">question 1 of 4</p>
+        <h2 class="scan-q" id="scanQ"></h2>
+        <div class="scan-options" id="scanOptions"></div>
+      </div>
+    </section>
+
+    <!-- ── SCREEN 4: CHAT ── -->
+    <section id="screen-chat" class="screen">
+      <header class="chat-header">
+        <div class="chat-header-left">
+          <div class="avatar" id="chatAvatar">♊︎</div>
+          <div class="chat-header-info">
+            <h2>The Alter</h2>
+            <div class="status-row">
+              <span class="status-dot"></span>
+              <p id="path-label">connected</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="icon-btn" onclick="copyConversation()" title="Copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="reset-btn" onclick="confirmReset()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+            <span>New Path</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="empty-state" id="emptyState">
+        <p class="empty-glyph">♊︎</p>
+        <p class="empty-title">bridging realities…</p>
+        <p class="empty-sub">give them a moment</p>
+      </div>
+
+      <div class="messages" id="messages"></div>
+      <div id="chatTimeline" class="timeline-tag">SYNCED: <span id="chatTimelineId">---</span></div>
+
+      <div class="chat-input-area">
+        <div class="input-wrapper">
+          <input
+            class="chat-input"
+            id="msgInput"
+            type="text"
+            placeholder="say something…"
+            autocomplete="off"
+            maxlength="500"
+            oninput="updateMsgCounter()"
+            onkeydown="if(event.key==='Enter') sendMessage()"
+          />
+          <span class="msg-counter" id="msgCounter"></span>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="warning-toast" id="warningToast"></div>
+  <script src="script.js"></script>
+</body>
+</html>
