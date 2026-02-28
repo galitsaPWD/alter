@@ -16,10 +16,11 @@ const MAX_SESSIONS  = 15;
 function saveSession() {
   const sessions = loadSessions();
   sessions.unshift({
-    id:       currentTimelineId,
-    date:     new Date().toISOString(),
-    scenario: scenario,
-    msgCount: conversation.length
+    id:           currentTimelineId,
+    date:         new Date().toISOString(),
+    scenario:     scenario,
+    msgCount:     conversation.length,
+    conversation: JSON.parse(JSON.stringify(conversation)) // Deep copy
   });
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)));
   renderSessionList();
@@ -33,9 +34,57 @@ function loadSessions() {
   }
 }
 
-function clearSessions() {
+function clearSessions(e) {
+  if (e) e.stopPropagation();
   localStorage.removeItem(SESSIONS_KEY);
   renderSessionList();
+}
+
+function toggleFolder() {
+  const list = document.getElementById('sessionList');
+  const icon = document.getElementById('folderToggleIcon');
+  if (list && icon) {
+    // If it's explicitly 'flex', hide it. Otherwise (none or empty), show it.
+    if (list.style.display === 'flex') {
+      list.style.display = 'none';
+      icon.textContent = '+';
+    } else {
+      list.style.display = 'flex';
+      icon.textContent = '−';
+    }
+  }
+}
+
+function openTranscript(index) {
+  const sessions = loadSessions();
+  const s = sessions[index];
+  if (!s) return;
+
+  const modal = document.getElementById('transcriptModal');
+  const meta = document.getElementById('transcriptMeta');
+  const scenarioEl = document.getElementById('transcriptScenario');
+  const messagesBox = document.getElementById('transcriptMessages');
+
+  const d = new Date(s.date);
+  meta.textContent = `TIMELINE / ${s.id} / ${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  scenarioEl.textContent = s.scenario;
+
+  messagesBox.innerHTML = '';
+  if (s.conversation) {
+    s.conversation.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = `msg ${msg.role === 'user' ? 'user' : 'alter'}`;
+      const label = msg.role === 'user' ? 'you' : 'the alter';
+      div.innerHTML = `
+        <span class="msg-label">${label}</span>
+        <div class="bubble">${escapeHtml(msg.content)}</div>`;
+      messagesBox.appendChild(div);
+    });
+  } else {
+     messagesBox.innerHTML = '<p class="folder-sub" style="text-align:center;">[ NO TRANSCRIPT DATA AVAILABLE FOR THIS ARCHIVE ]</p>';
+  }
+
+  modal.style.display = 'flex';
 }
 
 function renderSessionList() {
@@ -48,7 +97,7 @@ function renderSessionList() {
   folder.style.display = sessions.length ? 'block' : 'none';
   list.innerHTML = '';
 
-  sessions.forEach(s => {
+  sessions.forEach((s, idx) => {
     const d    = new Date(s.date);
     const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -56,6 +105,8 @@ function renderSessionList() {
 
     const li = document.createElement('li');
     li.className = 'session-item';
+    li.onclick = () => openTranscript(idx);
+    li.style.cursor = 'pointer';
     li.innerHTML = `
       <div class="session-header">
         <span class="session-id">${s.id}</span>
@@ -214,6 +265,10 @@ function goTo(id) {
   const target = document.getElementById(id);
   target.classList.add('active');
   target.style.animation = 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both';
+
+  // show theme toggle only on landing
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) toggle.style.display = (id === 'screen-landing') ? 'flex' : 'none';
 }
 
 /* ─────────────────────────────────────────
@@ -800,10 +855,100 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+function glitchText(element, finalStr, speed = 30) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+  let iterations = 0;
+  
+  const interval = setInterval(() => {
+    element.textContent = finalStr.split('').map((char, index) => {
+      if (index < iterations) return char;
+      return chars[Math.floor(Math.random() * chars.length)];
+    }).join('');
+    
+    if (iterations >= finalStr.length) {
+      clearInterval(interval);
+      element.textContent = finalStr;
+    }
+    iterations += 1 / 2; // slow down the reveal slightly
+  }, speed);
+}
+
+
 /* ─────────────────────────────────────────
-   RESET
+   RESET / DISCONNECT
 ───────────────────────────────────────── */
-function resetAll() {
+function confirmReset() {
+  if (conversation.length > 0) {
+    document.getElementById('saveModal').style.display = 'flex';
+  } else {
+    performReset();
+  }
+}
+
+function saveAndReset() {
+  saveSession();
+  runDisconnectSequence("encrypting memory log...");
+}
+
+function deleteAndReset() {
+  runDisconnectSequence("severing timeline connection...");
+}
+
+function runDisconnectSequence(message) {
+  const disconnectScreen = document.getElementById('disconnectScreen');
+  const termOut = document.getElementById('terminalOutput');
+  const saveModal = document.getElementById('saveModal');
+
+  // Fast fade in for disconnect
+  disconnectScreen.style.transition = 'opacity 0.2s ease'; 
+  disconnectScreen.classList.add('active');
+
+  // Hardcode terminal sequence based on action
+  termOut.innerHTML = '';
+  const lines = message.includes('encrypting') ? [
+    `[SYS] Initiating encryption protocol v.9...`,
+    `[SYS] Scanning ${conversation.length} timeline blocks...`,
+    `[OK] Blocks compressed.`,
+    `[OK] Timeline ID: ${currentTimelineId} secured.`,
+    `[SYS] Pushing to Redacted Folder...`,
+    `[SYS] Severing connection...`
+  ] : [
+    `[SYS] Initiating severance protocol...`,
+    `[WARN] Target memory flagged for deletion.`,
+    `[SYS] Purging ${conversation.length} timeline blocks...`,
+    `[OK] Data eradication complete.`,
+    `[WARN] Timeline ID: ${currentTimelineId} lost.`,
+    `[SYS] Closing connection...`
+  ];
+
+  let delay = 0;
+  lines.forEach((line, i) => {
+    setTimeout(() => {
+      const p = document.createElement('p');
+      if (line.includes('[WARN]')) p.style.color = '#ff4a4a';
+      if (line.includes('[OK]')) p.style.color = '#3a9e6a';
+      termOut.appendChild(p);
+      glitchText(p, line, 15); // very fast glitch
+    }, delay);
+    delay += 350; // time between lines
+  });
+
+  setTimeout(() => {
+    saveModal.style.display = 'none'; // hide modal now that screen is covered
+    performReset();
+    
+    // Slow fade out to reveal home screen
+    disconnectScreen.style.transition = 'opacity 0.8s ease';
+    disconnectScreen.classList.add('fadeout');
+    
+    setTimeout(() => {
+      disconnectScreen.classList.remove('active', 'fadeout');
+      termOut.innerHTML = ''; // clear terminal
+    }, 1000);
+  }, delay + 800); // wait for all lines + buffer to reset
+}
+
+function performReset() {
   conversation  = [];
   scanAnswers   = [];
   currentScanQ  = 0;
@@ -848,3 +993,8 @@ function dismissWarning() {
   modal.classList.add('dismissed');
   setTimeout(() => modal.style.display = 'none', 500);
 }
+
+/* ─────────────────────────────────────────
+   INIT
+───────────────────────────────────────── */
+renderSessionList();

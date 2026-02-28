@@ -17,8 +17,8 @@
 </head>
 <body>
 
-  <!-- THEME TOGGLE -->
-  <div class="theme-toggle">
+  <!-- THEME TOGGLE — fixed, hidden on non-landing screens via CSS -->
+  <div class="theme-toggle" id="themeToggle">
     <button class="btn-dark active" onclick="setTheme('dark')">dark</button>
     <span class="toggle-sep">/</span>
     <button class="btn-light" onclick="setTheme('light')">light</button>
@@ -38,6 +38,20 @@
     </div>
   </div>
 
+  <!-- ── DISCONNECT TERMINAL ── -->
+  <div class="disconnect-overlay" id="disconnectScreen">
+    <div class="terminal-box">
+      <div class="terminal-header">
+        <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+        <span style="opacity: 0.5; margin-left: 8px;">sys/teardown</span>
+      </div>
+      <div id="terminalOutput" class="terminal-content">
+        <!-- Lines injected via JS -->
+      </div>
+      <span class="terminal-cursor">_</span>
+    </div>
+  </div>
+
   <!-- ── WARNING MODAL ── -->
   <div class="warning-modal" id="warningModal">
     <div class="warning-box">
@@ -49,6 +63,37 @@
     </div>
   </div>
 
+  <!-- ── SAVE MODAL ── -->
+  <div class="warning-modal" id="saveModal" style="display: none;">
+    <div class="warning-box">
+      <p class="warning-file">SYSTEM_PROMPT / DISCONNECT</p>
+      <h3 class="warning-title">sever connection.</h3>
+      <p class="warning-body" style="margin-bottom: 24px;">do you wish to log this timeline in the redacted folder, or sever it completely?</p>
+      <div style="display: flex; gap: 12px; flex-direction: column;">
+        <button class="warning-btn" style="background: var(--text); color: var(--bg);" onclick="saveAndReset()">[ encrypt & save ]</button>
+        <button class="warning-btn" onclick="deleteAndReset()">[ sever & forget ]</button>
+        <button class="warning-btn" style="opacity: 0.5; margin-top: 8px;" onclick="document.getElementById('saveModal').style.display='none'">return to chat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TRANSCRIPT VIEWER MODAL ── -->
+  <div class="warning-modal" id="transcriptModal" style="display: none;">
+    <div class="transcript-box">
+      <div class="transcript-header">
+        <div>
+          <p class="warning-file" id="transcriptMeta">TIMELINE / 00:00</p>
+          <h3 class="warning-title" style="margin-bottom: 4px;">ARCHIVED_SESSION</h3>
+          <p class="folder-sub" id="transcriptScenario" style="line-height:1.4">scenario text...</p>
+        </div>
+        <button class="icon-btn" onclick="document.getElementById('transcriptModal').style.display='none'" style="align-self: flex-start; margin-top: -8px; margin-right: -8px;">×</button>
+      </div>
+      <div class="transcript-body" id="transcriptMessages">
+        <!-- Messages injected here -->
+      </div>
+    </div>
+  </div>
+
   <div class="page">
 
     <!-- ── SCREEN 1: LANDING ── -->
@@ -56,6 +101,7 @@
       <div class="landing-file">
         <span class="file-tag">FILE_7742–B</span>
         <span class="file-tag redacted">██████████</span>
+
       </div>
       <div class="landing-body">
         <p class="landing-pre">this site wasn't meant to be indexed.</p>
@@ -68,6 +114,18 @@
         </button>
         <p class="fine-print">no accounts · no data · nothing stored</p>
       </div>
+
+      <!-- ── REDACTED FOLDER ── -->
+      <section id="redactedFolder" style="display:none;">
+        <div class="folder-header" onclick="toggleFolder()">
+          <div>
+            <p class="folder-tag"><span id="folderToggleIcon">+</span> REDACTED FOLDER</p>
+            <p class="folder-sub">previously accessed timelines</p>
+          </div>
+          <button class="folder-clear-btn" onclick="clearSessions(event)">clear</button>
+        </div>
+        <ul id="sessionList" style="display: none;"></ul>
+      </section>
     </section>
 
     <!-- ── SCREEN 2: PATH ── -->
@@ -131,7 +189,7 @@
           <button class="icon-btn" onclick="copyConversation()" title="Copy">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
-          <button class="reset-btn" onclick="resetAll()">
+          <button class="reset-btn" onclick="confirmReset()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
             <span>New Path</span>
           </button>
