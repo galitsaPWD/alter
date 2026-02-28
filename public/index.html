@@ -3,111 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Alter — Talk to the version of yourself that took the other path</title>
-  <meta name="description" content="Describe a major life decision and the path you didn't take. Then talk to the version of yourself who did." />
-  <meta property="og:title" content="Alter" />
-  <meta property="og:description" content="Talk to the version of yourself that took the other path." />
+  <title>alter</title>
+  <meta name="description" content="you weren't supposed to find this." />
+  <meta property="og:title" content="alter" />
+  <meta property="og:description" content="you weren't supposed to find this." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Alter" />
-  <meta name="twitter:description" content="Talk to the version of yourself that took the other path." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M20 15 h60 M20 85 h60 M35 15 v70 M65 15 v70' stroke='black' stroke-width='10' stroke-linecap='round' fill='none' style='stroke: black; filter: invert(var(--dark-mode-invert, 0));'/></svg>" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <meta name="twitter:title" content="alter" />
+  <meta name="twitter:description" content="you weren't supposed to find this." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♊︎</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Inter:wght@300;400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <!-- THEME TOGGLE -->
   <div class="theme-toggle">
-    <button id="btn-dark" class="active" onclick="setTheme('dark')" title="Dark mode">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-    </button>
-    <button id="btn-light" onclick="setTheme('light')" title="Light mode">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-    </button>
+    <button class="btn-dark active" onclick="setTheme('dark')">dark</button>
+    <span class="toggle-sep">/</span>
+    <button class="btn-light" onclick="setTheme('light')">light</button>
+  </div>
+
+  <!-- ── LOADER ── -->
+  <div class="loader-overlay" id="loaderScreen">
+    <canvas id="branchCanvas"></canvas>
+    <div class="loader-content">
+      <p class="loader-glyph">♊︎</p>
+      <div id="loaderStatus">scanning timelines...</div>
+      <div id="loaderTimeline" class="timeline-tag">TARGET: <span id="loaderTimelineId">---</span></div>
+      <div id="loaderBarContainer">
+        <div id="loaderBar"></div>
+      </div>
+      <p class="loader-warning">do not close this tab</p>
+    </div>
+  </div>
+
+  <!-- ── WARNING MODAL ── -->
+  <div class="warning-modal" id="warningModal">
+    <div class="warning-box">
+      <p class="warning-file">SYSTEM_ALERT / TIMELINE-7</p>
+      <h3 class="warning-title">proceed with caution.</h3>
+      <p class="warning-body">what you're about to access is not indexed.<br>this connection is unverified and unstable.<br>we are not responsible for what you find.</p>
+      <button class="warning-btn" onclick="dismissWarning()">i understand the risks →</button>
+      <p class="warning-small">this session will not be recorded.</p>
+    </div>
   </div>
 
   <div class="page">
 
-    <!-- ── SETUP SCREEN ── -->
-    <section id="setup">
-      <div class="setup-top">
-        <span class="tag">Alternate Self</span>
-        <h1>Meet <em>the other</em><br>version of you</h1>
-        <p class="subtitle">Describe a path you didn't take.<br>We'll let you talk to the you who did.</p>
+    <!-- ── SCREEN 1: LANDING ── -->
+    <section id="screen-landing" class="screen active">
+      <div class="landing-file">
+        <span class="file-tag">FILE_7742–B</span>
+        <span class="file-tag redacted">██████████</span>
       </div>
-
-      <!-- Example prompts -->
-      <div class="examples">
-        <p class="examples-label">Try one of these</p>
-        <div class="example-chips">
-          <button class="chip" onclick="useExample(this)">Medicine over design</button>
-          <button class="chip" onclick="useExample(this)">Moved abroad after college</button>
-          <button class="chip" onclick="useExample(this)">Music over engineering</button>
-          <button class="chip" onclick="useExample(this)">Started my own business</button>
-          <button class="chip" onclick="useExample(this)">Said yes to that relationship</button>
-        </div>
+      <div class="landing-body">
+        <p class="landing-pre">this site wasn't meant to be indexed.</p>
+        <h1>alter</h1>
+        <p class="landing-desc">somewhere in another timeline, a version of you took the path you didn't. this is where you talk to them.</p>
       </div>
+      <div class="landing-actions">
+        <button class="primary-btn" onclick="goTo('screen-path')">
+          i understand <span class="arrow">→</span>
+        </button>
+        <p class="fine-print">no accounts · no data · nothing stored</p>
+      </div>
+    </section>
 
-      <div class="setup-card">
-        <div class="field-header">
-          <label class="field-label" for="scenario">The road you didn't travel</label>
-        </div>
+    <!-- ── SCREEN 2: PATH ── -->
+    <section id="screen-path" class="screen">
+      <div class="screen-nav">
+        <button class="back-btn" onclick="goTo('screen-landing')">← back</button>
+        <span class="step-tag">01 / 02</span>
+      </div>
+      <div class="screen-body">
+        <p class="screen-pre">describe the fork</p>
+        <h2>What path<br>didn't you take?</h2>
+        <p class="screen-sub">the more specific you are, the more accurately we can locate your alter.</p>
+
+
         <textarea
           id="scenario"
-          placeholder="e.g. I chose engineering over multimedia arts — but I always wondered what that creative life would have felt like."
-          rows="4"
+          placeholder="i wanted to be an astronaut but ended up in IT..."
+          rows="3"
           maxlength="600"
           oninput="updateCounter()"
         ></textarea>
-        <button class="start-btn" id="startBtn" onclick="startChat()">
-          <span>Open the Door</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        <div class="field-foot">
+          <span class="char-count" id="charCount">0 / 600</span>
+        </div>
+      </div>
+      <div class="screen-foot">
+        <button class="primary-btn" onclick="goToScan()">
+          continue <span class="arrow">→</span>
         </button>
       </div>
-
-      <p class="setup-hint">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Private — nothing is saved or stored
-      </p>
     </section>
 
-    <!-- ── CHAT SCREEN ── -->
-    <section id="chat">
+    <!-- ── SCREEN 3: SCAN ── -->
+    <section id="screen-scan" class="screen">
+      <div class="screen-nav">
+        <button class="back-btn" id="scanBackBtn" onclick="scanBack()">← back</button>
+        <span class="step-tag" id="scanStepTag">02 / 02</span>
+      </div>
+      <div class="screen-body">
+        <p class="screen-pre">behavioral scan</p>
+        <p class="scan-meta" id="scanMeta">question 1 of 4</p>
+        <h2 class="scan-q" id="scanQ"></h2>
+        <div class="scan-options" id="scanOptions"></div>
+      </div>
+    </section>
+
+    <!-- ── SCREEN 4: CHAT ── -->
+    <section id="screen-chat" class="screen">
       <header class="chat-header">
         <div class="chat-header-left">
-          <div class="avatar" id="chatAvatar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 14c-2.67 0-5.01-1.33-6.42-3.36C7.03 15.01 9.41 14 12 14s4.97 1.01 6.42 2.64C16.99 18.67 14.67 20 12 20z"/></svg>
-          </div>
+          <div class="avatar" id="chatAvatar">♊︎</div>
           <div class="chat-header-info">
             <h2>The Alter</h2>
             <div class="status-row">
-              <span class="status-dot" id="statusDot"></span>
-              <p id="path-label">Living the path you didn't</p>
+              <span class="status-dot"></span>
+              <p id="path-label">connected</p>
             </div>
           </div>
         </div>
         <div class="chat-header-actions">
-          <button class="icon-btn" id="copyBtn" onclick="copyConversation()" title="Copy conversation">
+          <button class="icon-btn" onclick="copyConversation()" title="Copy">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
-          <button class="reset-btn" onclick="resetChat()">
+          <button class="reset-btn" onclick="resetAll()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
-            New Path
+            <span>New Path</span>
           </button>
         </div>
       </header>
 
-      <!-- Empty state shown before first message arrives -->
       <div class="empty-state" id="emptyState">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 14c-2.67 0-5.01-1.33-6.42-3.36C7.03 15.01 9.41 14 12 14s4.97 1.01 6.42 2.64C16.99 18.67 14.67 20 12 20z"/></svg>
-        </div>
-        <p class="empty-title">Your other self is waking up…</p>
-        <p class="empty-sub">Give them a moment</p>
+        <p class="empty-glyph">♊︎</p>
+        <p class="empty-title">bridging realities…</p>
+        <p class="empty-sub">give them a moment</p>
       </div>
 
       <div class="messages" id="messages"></div>
+      <div id="chatTimeline" class="timeline-tag">SYNCED: <span id="chatTimelineId">---</span></div>
 
       <div class="chat-input-area">
         <div class="input-wrapper">
@@ -115,7 +153,7 @@
             class="chat-input"
             id="msgInput"
             type="text"
-            placeholder="Ask your other self anything…"
+            placeholder="say something…"
             autocomplete="off"
             maxlength="500"
             oninput="updateMsgCounter()"
@@ -131,9 +169,8 @@
 
   </div>
 
-  <!-- Toast -->
   <div class="toast" id="toast"></div>
-
+  <div class="warning-toast" id="warningToast"></div>
   <script src="script.js"></script>
 </body>
 </html>
