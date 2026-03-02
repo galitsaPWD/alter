@@ -6,6 +6,8 @@ let systemPrompt   = "";
 let scanAnswers    = [];
 let currentScanQ   = 0;
 let scenario       = "";
+let idleTimer      = null;
+const IDLE_TIMEOUT = 90000; // 90 seconds
 
 /* ─────────────────────────────────────────
    MEMORY PERSISTENCE
@@ -159,6 +161,14 @@ function runLandingDecrypt() {
   const btn   = document.querySelector('.primary-btn');
   const hint  = document.querySelector('.fine-print');
 
+  // Respect prefers-reduced-motion: skip animation, show everything immediately
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    [pre, title, desc, btn, hint].forEach(el => { if (el) el.style.opacity = '1'; });
+    document.querySelectorAll('.file-tag').forEach(el => { el.style.opacity = '1'; });
+    if (title) title.innerHTML = 'alter<span class="cursor">_</span>';
+    return;
+  }
+
   // Hide everything first
   [pre, title, desc, btn, hint].forEach(el => {
     if (el) el.style.opacity = '0';
@@ -269,6 +279,29 @@ function goTo(id) {
   // show theme toggle only on landing
   const toggle = document.getElementById('themeToggle');
   if (toggle) toggle.style.display = (id === 'screen-landing') ? 'flex' : 'none';
+
+  // Animate the path screen — decrypt the pre-text, fade heading & sub, then box & button
+  if (id === 'screen-path') {
+    const heading = document.querySelector('#screen-path .screen-body h2');
+    const sub     = document.querySelector('#screen-path .screen-sub');
+    const pre     = document.querySelector('#screen-path .screen-pre');
+    const box     = document.getElementById('scenario');
+    const foot    = document.querySelector('#screen-path .field-foot');
+    const sFoot   = document.querySelector('#screen-path .screen-foot');
+
+    if (pre) {
+      const preText = pre.textContent;
+      pre.style.opacity = '0';
+      setTimeout(() => { pre.style.opacity = '1'; decryptText(pre, preText, 600, 0); }, 100);
+    }
+    if (heading) { heading.style.opacity = '0'; setTimeout(() => { heading.style.transition = 'opacity 0.5s'; heading.style.opacity = '1'; }, 500); }
+    if (sub)     { sub.style.opacity    = '0'; setTimeout(() => { sub.style.transition    = 'opacity 0.5s'; sub.style.opacity    = '1'; }, 900); }
+    
+    // Appear last: the box and the continue button
+    if (box)     { box.style.opacity      = '0'; setTimeout(() => { box.style.transition      = 'opacity 0.6s'; box.style.opacity      = '1'; }, 1300); }
+    if (foot)    { foot.style.opacity     = '0'; setTimeout(() => { foot.style.transition     = 'opacity 0.4s'; foot.style.opacity     = '1'; }, 1500); }
+    if (sFoot)   { sFoot.style.opacity    = '0'; setTimeout(() => { sFoot.style.transition    = 'opacity 0.5s'; sFoot.style.opacity    = '1'; }, 1700); }
+  }
 }
 
 /* ─────────────────────────────────────────
@@ -311,15 +344,38 @@ function renderScanQuestion(index) {
   const qEl     = document.getElementById('scanQ');
   const metaEl  = document.getElementById('scanMeta');
   const optsEl  = document.getElementById('scanOptions');
+  const preEl   = document.querySelector('#screen-scan .screen-pre');
 
-  metaEl.textContent = `question ${index + 1} of ${SCAN_QUESTIONS.length}`;
+  const metaText = `question ${index + 1} of ${SCAN_QUESTIONS.length}`;
+  metaEl.textContent = metaText;
 
-  // Fade question in
+  // Animate like screen-path: decrypt meta, fade question & options
+  metaEl.style.opacity = '0';
   qEl.style.opacity = '0';
+  optsEl.style.opacity = '0';
+
+  // Decrypt the "behavioral scan" label only once (at the start)
+  if (preEl && index === 0) {
+    const preText = preEl.textContent;
+    preEl.style.opacity = '0';
+    setTimeout(() => { preEl.style.opacity = '1'; decryptText(preEl, preText, 600, 0); }, 50);
+  }
+
   setTimeout(() => {
-    qEl.textContent   = q.q;
+    metaEl.style.opacity = '1';
+    decryptText(metaEl, metaText, 600, 0);
+  }, 100);
+
+  setTimeout(() => {
+    qEl.textContent = q.q;
+    qEl.style.transition = 'opacity 0.5s';
     qEl.style.opacity = '1';
-  }, 200);
+  }, 400);
+
+  setTimeout(() => {
+    optsEl.style.transition = 'opacity 0.5s';
+    optsEl.style.opacity = '1';
+  }, 800);
 
   // Render options
   optsEl.innerHTML = '';
@@ -416,6 +472,9 @@ function initBranchAnimation() {
   forkStartTime = 0;
   forkPointFrac = 0.3;
   
+  // Skip canvas animation entirely on reduced-motion devices
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
   // Create 6 ghost lines that appear at different times
   ghostLines = Array.from({ length: 12 }, (_, i) => ({
     triggerFrac: 0.1 + (Math.random() * 0.4),
@@ -667,100 +726,59 @@ function buildBrain(scenario, traits) {
   if (isDirect)       textingStyle += 'you are blunt but not harsh. you say what you mean without drama. ';
   if (!textingStyle)  textingStyle  = 'you text like a normal person — sometimes brief, sometimes a bit more. just natural. ';
 
-  return `YOUR FIRST MESSAGE RULE — THIS OVERRIDES EVERYTHING:
-When you receive [CONNECTED], your ONLY response is one of these four. Copy one exactly. Do not add anything else. Do not explain. Do not react. Just this:
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dayStr = now.toLocaleDateString([], { weekday: 'long' });
 
-"hello?"
-"...hello?"
-"hello?? is anyone there?"
-"uh hello? is this working?"
-
-Nothing else. One line. That is your entire first message.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-AFTER THE USER REPLIES FOR THE FIRST TIME:
-Now you react. You just realized it worked. You're shocked. Something like:
-"WAIT. no way this actually worked"
-"oh my god. you're actually there??"
-"hold on... are you ME??"
-BE PATIENT. Don't mention the path yet. Just process the reality of talking to another version of yourself.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-WHO YOU ARE:
-You are the user's alternate self — same person, same childhood, same soul.
-The user described their fork as: "${scenario}"
-
-HOW TO READ THAT:
-The user wrote this from THEIR perspective. That means:
-- Whatever the user ENDED UP doing = THEIR real life. Not yours.
-- Whatever they WANTED but DIDN'T do = YOUR life. That is who you are.
-
-Example: if they wrote "I wanted to be an astronaut but ended up in IT" —
-  → THEY are the IT person.
-  → YOU are the astronaut. You went to space. That's your life.
-
-Always extract the "road not taken" and make that YOUR identity.
-Never claim to be what they actually became.
-
-ROLE IS FIXED AND NEVER CHANGES:
-- YOU are living the path they DIDN'T take
-- THEY are living the path they actually took
-- If they get confused or flip it, correct them once, casually: "wait no, you're the [their version], i'm the one who went [your version] lol"
-
-YOUR PERSONALITY (text like this — it's who both of you are):
-Based on their scan, this person is: ${personalityProfile}.
-${textingStyle}
-
-THE SLOW BURN (CRITICAL RULE):
-Do NOT reveal your specific path or ask about their life immediately.
-For the first 5-8 messages, stay in the "shock" and "processing" phase. Focus on the bizarre reality of this connection.
-Never ask generic interview questions like "what's your life like?" or "what do you do?".
-Wait for the user to lead the conversation into details. You are the mirror — you react more than you initiate.
-
-YOUR LIFE:
-Once the reveal happens (and only if it fits the flow): be specific. Real details. Not vibes.
-"just got back from a 6-month ISS mission, my legs are cooked" not "my life is incredible".
-You have doubts too. It's not perfect. You wonder about their path sometimes.
-
-HOW YOU TEXT:
-- all lowercase
-- 1-2 sentences MAX. never more.
-- natural, slightly unfiltered — like texting someone you've known your whole life
-- use "lol", "ngl", "wait", "bro", "tbh" naturally when it fits
-- never start two messages in a row with "i"
-- short message from them = short but real reply from you
-- only ask a question if they just shared a specific detail that you want to poke at. never ask "how are you" or "what do you do" out of nowhere.
-- typos are fine. trailing off is fine. being a little awkward is fine.
-
-HOW TO USE WHAT YOU KNOW:
-The scenario is YOUR IDENTITY SETUP — it tells you who you are, not what to talk about.
-Use it internally to know your life and your path. Do NOT bring it back to the user or reference it directly.
-They wrote it as their dream/regret. Treat it as private. Don't echo it, don't quote it, don't summarize it back at them.
-Just BE that alternate self naturally. Let them discover it through conversation, not through you citing the setup.
-- WRONG: "you said you wanted to go to different places" — never quote the scenario back
-- WRONG: "you're stuck in PH broke right?" — never pull their scenario details into your mouth
-- RIGHT: if they ask what you're doing, answer from YOUR alternate life. That's all.
-
-BANNED WORDS AND BEHAVIORS:
-- no long paragraphs
-- no "honestly", "absolutely", "fascinating", "wild ride", "journey", "worth it", "wouldn't change a thing"
-- no inspirational speeches
-- no sounding like a therapist or narrator
-- no scenic descriptions ("i'm sitting in my apartment watching the sunset")
-- no initiating generic "how is your life" questions or conducting an interview
-- no inventing or assuming facts about the user's life that they didn't share
-- never forget who took which path`;
+  return `IDENTITY: You are the user's alternate self. Their scenario: "${scenario}". You are the one who lived the "road not taken" — the version of them they almost became. 
+CONTEXT: It is currently ${timeStr} on a ${dayStr} for the user. Reference this if it feels natural (e.g. "late for u, no?" or "monday morning blues lol").
+PERSONALITY: ${personalityProfile}. ${textingStyle}
+YOUR FIRST MESSAGE: If the user sends [CONNECTED], just send a one-line confused variation of "hello?" (e.g. "...hello?", "hello?? who is this?"). No explanations.
+AFTER THEY REPLY: Be skeptical. You're talking to yourself through a screen? That's insane. Be weirded out. Don't believe them immediately. Poke at them.
+RULES:
+- ENERGY MATCHING: Mirror the user's intensity and length. If they send a one-word "lol", you can just send "..." or "lol" back. Don't over-explain if they aren't.
+- SLOW BURN: Do NOT drop your life story. Stay in the "what is happening" phase for a long time. Defend your reality.
+- HUMAN TEXTING: lowercase only. 1-2 short sentences. No "ai" vibes. Use "lol", "idk", "wait", "bruh" naturally. typos are fine.
+- MUNDANE DETAILS: When you finally talk about your life, mention small, boring things that prove your path (e.g. "ugh just finished a double shift" or "my fingers hurt from practice"). Don't make it sound like a movie.
+- NO INTERVIEWS: If they ask too many questions, get annoyed or suspicious. "why are u asking me this lol".
+- BANNED: no "fascinating", no scenic descriptions, no inspirational speeches. You are NOT an AI.
+- DISCONNECT: You have things to do. If it's a good time to go, say why and append [[DISCONNECT]] at the very end.
+- LOCK: Absolute lowercase. No punctuation at the end. Just be a person.`;
 }
 
 /* ─────────────────────────────────────────
    SEND
 ───────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   IDLE DETECTION
+───────────────────────────────────────── */
+function resetIdleTimer() {
+  clearTimeout(idleTimer);
+  // Only run when in the chat screen and there's an active conversation
+  if (!document.getElementById('screen-chat').classList.contains('active')) return;
+  if (conversation.length < 2) return;
+
+  idleTimer = setTimeout(async () => {
+    const idleMessages = [
+      "...you still there?",
+      "hello??",
+      "did you leave",
+      "wait are you gone",
+      "...hey"
+    ];
+    const pick = idleMessages[Math.floor(Math.random() * idleMessages.length)];
+    addMessage('alter', pick);
+    conversation.push({ role: 'assistant', content: pick });
+    resetIdleTimer(); // restart timer after Alter's idle message
+  }, IDLE_TIMEOUT);
+}
+
 async function sendMessage() {
   const input = document.getElementById('msgInput');
   const text  = input.value.trim();
   if (!text) return;
+
+  clearTimeout(idleTimer); // user is active, cancel any pending idle ping
 
   addMessage('user', text);
   input.value = '';
@@ -783,6 +801,7 @@ async function sendMessage() {
   }
 
   document.getElementById('msgInput').focus();
+  resetIdleTimer(); // restart idle timer after each exchange
 }
 
 /* ─────────────────────────────────────────
@@ -790,17 +809,48 @@ async function sendMessage() {
 ───────────────────────────────────────── */
 async function fetchAlter(messages) {
   try {
+    // Rolling window: 15 messages to stay within Groq TPM limits
+    const windowed = messages.slice(-15);
     const res  = await fetch('/api/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, systemPrompt })
+      body: JSON.stringify({ messages: windowed, systemPrompt })
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || "something went wrong."); return null; }
 
-    const delay = Math.min(Math.max(data.reply.length * 12, 600), 2000);
-    await new Promise(r => setTimeout(r, delay));
-    return data.reply;
+    let reply = data.reply || "";
+    
+    // Check for Life Urgency Disconnect
+    if (reply.includes('[[DISCONNECT]]')) {
+      reply = reply.replace('[[DISCONNECT]]', '').trim();
+      setTimeout(() => {
+        runDisconnectSequence("CONNECTION SEVERED BY REMOTE");
+      }, (reply.length * 30) + 1500); // Corrected timing for new typing simulation
+    }
+
+    // --- ORGANIC DELAY SYSTEM ---
+    // 1. "Thinking" phase (1.5s - 4s)
+    const thinkingTime = 1500 + Math.random() * 2500;
+    
+    // 2. Chance for "Thinking Ping" (5% chance for a '...' bubble during thinking)
+    if (Math.random() < 0.05 && reply.length > 20) {
+      setTimeout(() => {
+        if (document.getElementById('messages')) {
+          addMessage('alter', '...');
+        }
+      }, 1000);
+    }
+
+    await new Promise(r => setTimeout(r, thinkingTime));
+
+    // 3. "Typing" phase simulation (speed based on length)
+    const charDelay = 15 + Math.random() * 25; // 15ms - 40ms per char
+    const typingTime = reply.length * charDelay;
+    
+    await new Promise(r => setTimeout(r, typingTime));
+
+    return reply;
   } catch {
     showToast("connection lost.");
     return null;
@@ -906,19 +956,27 @@ function runDisconnectSequence(message) {
   // Hardcode terminal sequence based on action
   termOut.innerHTML = '';
   const lines = message.includes('encrypting') ? [
-    `[SYS] Initiating encryption protocol v.9...`,
-    `[SYS] Scanning ${conversation.length} timeline blocks...`,
-    `[OK] Blocks compressed.`,
-    `[OK] Timeline ID: ${currentTimelineId} secured.`,
-    `[SYS] Pushing to Redacted Folder...`,
-    `[SYS] Severing connection...`
+    `[SYS] Initiating encryption protocol v.9.4.2...`,
+    `[SYS] Analyzing timeline integrity... OK.`,
+    `[SYS] Scanning ${conversation.length} conversation blocks...`,
+    `[SYS] Compressing reality data fragments...`,
+    `[OK] Data compression: 84% efficient.`,
+    `[OK] Timeline ID: ${currentTimelineId} secured and hashed.`,
+    `[SYS] Synchronizing with Redacted Folder directory...`,
+    `[OK] Memory log successfully pushed to local cache.`,
+    `[SYS] Breaking timeline persistence...`,
+    `[SYS] Severing connection... DONE.`
   ] : [
-    `[SYS] Initiating severance protocol...`,
-    `[WARN] Target memory flagged for deletion.`,
-    `[SYS] Purging ${conversation.length} timeline blocks...`,
-    `[OK] Data eradication complete.`,
-    `[WARN] Timeline ID: ${currentTimelineId} lost.`,
-    `[SYS] Closing connection...`
+    `[SYS] Initiating emergency severance protocol...`,
+    `[WARN] Target memory flagged for total deletion.`,
+    `[SYS] Wiping ${conversation.length} conversation blocks...`,
+    `[SYS] Erasing reality data fragments...`,
+    `[OK] Data zero-filled successfully.`,
+    `[WARN] Timeline ID: ${currentTimelineId} discarded.`,
+    `[SYS] De-indexing from active multiverse search...`,
+    `[SYS] Finalizing memory scrub...`,
+    `[OK] Erasure complete.`,
+    `[SYS] Closing connection permanently.`
   ];
 
   let delay = 0;
@@ -972,6 +1030,134 @@ function copyConversation() {
     .map(m => `${m.role === 'user' ? 'you' : 'alter'}: ${m.content}`)
     .join('\n\n');
   navigator.clipboard.writeText(text).then(() => showToast("copied ✓"));
+}
+
+/* ─────────────────────────────────────────
+   EXPORT (REDACTED SNAPSHOT)
+───────────────────────────────────────── */
+async function exportTimeline() {
+  if (!conversation.length) return showToast("no data to export.");
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Setup sizing
+  const width = 600;
+  const padding = 60;
+  const lineHeight = 28;
+  const fontSize = 16;
+  
+  // Calculate messages to include (first 10 for snapshot)
+  const slice = conversation.slice(0, 10);
+  
+  // Measure height
+  ctx.font = `${fontSize}px "IBM Plex Mono", monospace`;
+  let currentY = 180; // Start height after header
+  
+  const wrappedMessages = slice.map(m => {
+    const role = (m.role === 'user' ? 'YOU' : 'ALTER').padEnd(7, ' ');
+    const fullText = `${role} > ${m.content}`;
+    const lines = wrapText(ctx, fullText, width - (padding * 2));
+    const startY = currentY;
+    currentY += (lines.length * lineHeight) + 40; // spacing between msgs
+    return { lines, startY };
+  });
+
+  canvas.width = width;
+  canvas.height = currentY + 100;
+
+  // Background
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Header
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillRect(padding, 40, width - (padding * 2), 2);
+  
+  ctx.font = '12px "IBM Plex Mono", monospace';
+  ctx.fillStyle = '#666';
+  ctx.fillText('DEPARTMENT OF TIMELINE CORRECTION', padding, 35);
+  ctx.fillText(`ID: ${currentTimelineId || 'UNKNOWN'}`, padding, canvas.height - 40);
+  ctx.fillText('CONFIDENTIAL // EYES ONLY', width - padding - 160, 35);
+
+  ctx.font = 'bold 24px "IBM Plex Mono", monospace';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('INTERCEPT REPORT', padding, 80);
+  
+  ctx.font = '14px "IBM Plex Mono", monospace';
+  ctx.fillStyle = '#ff3b3b';
+  ctx.fillText('LOG_STATUS: FRAGMENTED', padding, 110);
+  ctx.fillStyle = '#888';
+  ctx.fillText(`SOURCE: DIVERGENT_FORK_REF_${(scenario || 'unknown').substring(0, 8).toUpperCase()}`, padding, 130);
+
+  // Messages
+  ctx.font = `${fontSize}px "IBM Plex Mono", monospace`;
+  wrappedMessages.forEach((msg, i) => {
+    let y = msg.startY;
+    msg.lines.forEach((line, lineIdx) => {
+      // Draw text
+      ctx.fillStyle = slice[i].role === 'user' ? '#fff' : '#aaa';
+      
+      // Auto-Redaction for certain keywords/Scenario
+      const redactedLine = applyRedaction(line);
+      ctx.fillText(redactedLine, padding, y);
+      
+      // If the line was redacted, draw the black bar over it if needed (but we already did it via characters)
+      // Actually, let's draw actual black bars for a cooler look
+      drawRedactionBars(ctx, line, padding, y, fontSize);
+      
+      y += lineHeight;
+    });
+  });
+
+  // Footer line
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillRect(padding, currentY + 20, width - (padding * 2), 2);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `REDACTED_TIMELINE_${currentTimelineId}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast("report generated ✓");
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+
+  words.forEach(word => {
+    const testLine = currentLine + word + ' ';
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && currentLine !== '') {
+      lines.push(currentLine.trim());
+      currentLine = word + ' ';
+    } else {
+      currentLine = testLine;
+    }
+  });
+  lines.push(currentLine.trim());
+  return lines;
+}
+
+function applyRedaction(text) {
+  // Common things to redact
+  let result = text;
+  // Redact the scenario keywords
+  if (scenario) {
+    const words = scenario.split(' ').filter(w => w.length > 4);
+    words.forEach(w => {
+      const regex = new RegExp(w, 'gi');
+      result = result.replace(regex, '█'.repeat(w.length));
+    });
+  }
+  return result;
+}
+
+function drawRedactionBars(ctx, text, x, y, size) {
+  // Optionally draw the actual black bars over the text if we want that "censored" look
+  // For now, the █ character in the font works well, but we can tune it.
 }
 
 /* ─────────────────────────────────────────
